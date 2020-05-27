@@ -1,4 +1,7 @@
-﻿Add-Type -Path "D:\Permissions\Libs\Microsoft.SharePoint.Client.dll"
+﻿#If you are working in the PowerShell and still have error 0x80131515, reopen console after unblocking files
+Unblock-File -Path "D:\Permissions\Libs\Microsoft.SharePoint.Client.dll"
+Unblock-File -Path "D:\Permissions\Libs\Microsoft.SharePoint.Client.Runtime.dll"
+Add-Type -Path "D:\Permissions\Libs\Microsoft.SharePoint.Client.dll"
 Add-Type -Path "D:\Permissions\Libs\Microsoft.SharePoint.Client.Runtime.dll"
     
 #Function to call a non-generic method Load
