@@ -1,0 +1,26 @@
+Object,Title,URL,HasUniquePermissions,Users,Type,Permissions,GrantedThrough
+Site Collection,Dev,https://CONTOSO.sharepoint.com/sites/DEV,TRUE,,Site Collection Administrators,Site Owner,Direct Permissions
+Site,Dev,https://CONTOSO.sharepoint.com/sites/DEV,TRUE,,SharePointGroup,Full Control,SharePoint Group: Dev Owners
+Site,Dev,https://CONTOSO.sharepoint.com/sites/DEV,TRUE,,SharePointGroup,Edit,SharePoint Group: Dev Members
+Site,Dev,https://CONTOSO.sharepoint.com/sites/DEV,TRUE,,User,Contribute,Direct Permissions
+Site,Dev,https://CONTOSO.sharepoint.com/sites/DEV,TRUE,,User,Full Control,Direct Permissions
+Site,Dev,https://CONTOSO.sharepoint.com/sites/DEV,TRUE,,SharePointGroup,Design,SharePoint Group: Designers
+Site,Dev,https://CONTOSO.sharepoint.com/sites/DEV,TRUE,,SharePointGroup,Manage Hierarchy,SharePoint Group: Hierarchy Managers
+Site,Dev,https://CONTOSO.sharepoint.com/sites/DEV,TRUE,,SharePointGroup,Approve,SharePoint Group: Approvers
+Site,Dev,https://CONTOSO.sharepoint.com/sites/DEV,TRUE,,SharePointGroup,Restricted Read,SharePoint Group: Restricted Readers
+Site,Dev,https://CONTOSO.sharepoint.com/sites/DEV,TRUE,,User,"Contribute,Read",Direct Permissions
+Site,Dev,https://CONTOSO.sharepoint.com/sites/DEV,TRUE,,SharePointGroup,Records Center Web Service Submitters,
+Site,Dev,https://CONTOSO.sharepoint.com/sites/DEV,TRUE,,SharePointGroup,Records Center Web Service Submitters,
+Site,Dev,https://CONTOSO.sharepoint.com/sites/DEV,TRUE,,SharePointGroup,Records Center Web Service Submitters,
+Site,Dev,https://CONTOSO.sharepoint.com/sites/DEV,TRUE,,SharePointGroup,Records Center Web Service Submitters,
+Site,Dev,https://CONTOSO.sharepoint.com/sites/DEV,TRUE,,SharePointGroup,Records Center Web Service Submitters,
+Site,Dev,https://CONTOSO.sharepoint.com/sites/DEV,TRUE,,SharePointGroup,Records Center Web Service Submitters,
+Site,Dev,https://CONTOSO.sharepoint.com/sites/DEV,TRUE,,SharePointGroup,Records Center Web Service Submitters,
+Site,Dev,https://CONTOSO.sharepoint.com/sites/DEV,TRUE,,SharePointGroup,Records Center Web Service Submitters,
+List or Library,Restrict Direct Access Test,https://CONTOSO.sharepoint.com/sites/DEV/Lists/Restrict Direct Access Test,TRUE,,SharePointGroup,Full Control,SharePoint Group: Dev Owners
+List or Library,Restrict Direct Access Test,https://CONTOSO.sharepoint.com/sites/DEV/Lists/Restrict Direct Access Test,TRUE,,SharePointGroup,Edit,SharePoint Group: Dev Members
+List or Library,Restrict Direct Access Test,https://CONTOSO.sharepoint.com/sites/DEV/Lists/Restrict Direct Access Test,TRUE,,User,Contribute,Direct Permissions
+List or Library,Restrict Direct Access Test,https://CONTOSO.sharepoint.com/sites/DEV/Lists/Restrict Direct Access Test,TRUE,,SharePointGroup,Design,SharePoint Group: Designers
+List or Library,Restrict Direct Access Test,https://CONTOSO.sharepoint.com/sites/DEV/Lists/Restrict Direct Access Test,TRUE,,SharePointGroup,Manage Hierarchy,SharePoint Group: Hierarchy Managers
+List or Library,Restrict Direct Access Test,https://CONTOSO.sharepoint.com/sites/DEV/Lists/Restrict Direct Access Test,TRUE,,SharePointGroup,Approve,SharePoint Group: Approvers
+List or Library,Restrict Direct Access Test,https://CONTOSO.sharepoint.com/sites/DEV/Lists/Restrict Direct Access Test,TRUE,,SharePointGroup,Restricted Read,SharePoint Group: Restricted Readers
