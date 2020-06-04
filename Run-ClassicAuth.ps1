@@ -8,7 +8,7 @@ Function Load-Dependencies
     try
     {
         Add-Type -Path $LibsPath'\Microsoft.SharePoint.Client.dll'
-        Add-Type -Path $LibsPath'\Libs\Microsoft.SharePoint.Client.Runtime.dll'
+        Add-Type -Path $LibsPath'\Microsoft.SharePoint.Client.Runtime.dll'
     }
     catch [System.Reflection.ReflectionTypeLoadException]
     {
@@ -368,8 +368,8 @@ Function Generate-SPOSitePermissionRpt()
 #region ***Parameters***
 $SiteURL="https://CONTOSO.sharepoint.com/sites/dev"
 $BatchSize = 500
-$ReportPath = "D:\SharePoint-Online-Permission-Checker\Reports"
-$LibsPath = "D:\SharePoint-Online-Permission-Checker\Libs"
+$ReportPath = '.\Reports'
+$LibsPath = '.\Libs'
 
 $LogTime = Get-Date -Format yyyy-MM-dd_hh-mm
 $ReportFile = $ReportPath + '\SitePermissionRpt_' + $LogTime + '.csv'
