@@ -1,4 +1,22 @@
 ﻿cls
+[System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12
+
+#region ***Parameters***
+[string]$SiteURL = 'https://CONTOSO.sharepoint.com/sites/DEV'
+[int]$BatchSize = 500
+[int]$RequestTimeOut = 60000
+[string]$ReportPath = $PSScriptRoot + '\Reports'
+[string]$LibsPath = $PSScriptRoot + '\Libs'
+[string]$LogPath = $PSScriptRoot + '\Logs'
+
+[string]$httpUserAgent = 'NONISV|ArtS|SPOPermissionChecker/2.4'
+[string]$LogTime = Get-Date -Format yyyy-MM-dd_hh-mm
+[string]$LogFile = $LogPath + '\SPOPermissionChecker_' + $LogTime + '.log'
+[string]$ReportFile = $ReportPath + '\SitePermissionRpt_' + $LogTime + '.csv'
+#endregion
+
+Start-Transcript -Path $LogFile
+
 Function Load-Dependencies
 {
 #If you are working in the PowerShell and still have error 0x80131515, reopen console after unblocking files
@@ -65,6 +83,7 @@ Function Get-Permissions([Microsoft.SharePoint.Client.SecurableObject]$Object)
                 $ObjectType = "Folder"
                 #Get the URL of the Folder
                 Invoke-LoadMethod -Object $Object -PropertyName "Folder"
+                Write-Host "'ExecuteQuery' at #Get the URL of the Folder" -ForegroundColor Yellow
                 $Ctx.ExecuteQuery()
                 $ObjectTitle = $Object.Folder.Name
                 $ObjectURL = $("{0}{1}" -f $Ctx.Web.Url.Replace($Ctx.Web.ServerRelativeUrl,''),$Object.Folder.ServerRelativeUrl)
@@ -73,6 +92,7 @@ Function Get-Permissions([Microsoft.SharePoint.Client.SecurableObject]$Object)
             {
                 #Get the URL of the Object
                 Invoke-LoadMethod -Object $Object -PropertyName "File"
+                Write-Host "'ExecuteQuery' at #Get the URL of the Object" -ForegroundColor Yellow
                 $Ctx.ExecuteQuery()
                 If($Object.File.Name -ne $Null)
                 {
@@ -86,6 +106,7 @@ Function Get-Permissions([Microsoft.SharePoint.Client.SecurableObject]$Object)
                     $ObjectTitle = $Object["Title"]
                     #Get the URL of the List Item
                     Invoke-LoadMethod -Object $Object.ParentList -PropertyName "DefaultDisplayFormUrl"
+                    Write-Host "'ExecuteQuery' at #Get the URL of the List Item" -ForegroundColor Yellow
                     $Ctx.ExecuteQuery()
                     $DefaultDisplayFormUrl = $Object.ParentList.DefaultDisplayFormUrl
                     $ObjectURL = $("{0}{1}?ID={2}" -f $Ctx.Web.Url.Replace($Ctx.Web.ServerRelativeUrl,''), $DefaultDisplayFormUrl,$Object.ID)
@@ -98,6 +119,7 @@ Function Get-Permissions([Microsoft.SharePoint.Client.SecurableObject]$Object)
             $ObjectTitle = $Object.Title
             #Get the URL of the List or Library
             $Ctx.Load($Object.RootFolder)
+            Write-Host "'ExecuteQuery' at #Get the URL of the List or Library" -ForegroundColor Yellow
             $Ctx.ExecuteQuery()            
             $ObjectURL = $("{0}{1}" -f $Ctx.Web.Url.Replace($Ctx.Web.ServerRelativeUrl,''), $Object.RootFolder.ServerRelativeUrl)
         }
@@ -105,12 +127,14 @@ Function Get-Permissions([Microsoft.SharePoint.Client.SecurableObject]$Object)
    
     #Check if Object has unique permissions
     Invoke-LoadMethod -Object $Object -PropertyName "HasUniqueRoleAssignments"
+    Write-Host "'ExecuteQuery' at #Check if Object has unique permissions" -ForegroundColor Yellow
     $Ctx.ExecuteQuery()
     $HasUniquePermissions = $Object.HasUniqueRoleAssignments
    
     #Get permissions assigned to the object
     $RoleAssignments = $Object.RoleAssignments
     $Ctx.Load($RoleAssignments)
+    Write-Host "'ExecuteQuery' at #Get permissions assigned to the object" -ForegroundColor Yellow
     $Ctx.ExecuteQuery()
     
     #Loop through each permission assigned and extract details
@@ -118,13 +142,31 @@ Function Get-Permissions([Microsoft.SharePoint.Client.SecurableObject]$Object)
     Foreach($RoleAssignment in $RoleAssignments)
     { 
         $Ctx.Load($RoleAssignment.Member)
-        $Ctx.executeQuery()
+        Write-Host "'ExecuteQuery' at #Loop through each permission assigned and extract details" -ForegroundColor Yellow
+        Write-Host "'ExecuteQuery' Decorating traffic with User agent" -ForegroundColor Green
+        $Ctx.RequestTimeout = $requestTimeOut
+        $Ctx.add_ExecutingWebRequest({
+        param($Source, $EventArgs)
+        $request = $EventArgs.WebRequestExecutor.WebRequest
+        $request.UserAgent = $httpUserAgent
+        })
+
+        $Ctx.ExecuteQuery()
     
         #Get the Principal Type: User, SP Group, AD Group
         $PermissionType = $RoleAssignment.Member.PrincipalType
     
         #Get the Permission Levels assigned
         $Ctx.Load($RoleAssignment.RoleDefinitionBindings)
+
+        Write-Host "'ExecuteQuery' at #Get the Permission Levels assigned" -ForegroundColor Yellow
+        Write-Host "'ExecuteQuery' Decorating traffic with User agent" -ForegroundColor Green
+        $Ctx.add_ExecutingWebRequest({
+        param($Source, $EventArgs)
+        $request = $EventArgs.WebRequestExecutor.WebRequest
+        $request.UserAgent = "NONISV|ArtS|SPOPermissionChecker/2.3"
+        })
+
         $Ctx.ExecuteQuery()
         $PermissionLevels = $RoleAssignment.RoleDefinitionBindings | Select -ExpandProperty Name
  
@@ -140,6 +182,15 @@ Function Get-Permissions([Microsoft.SharePoint.Client.SecurableObject]$Object)
             $Ctx.Load($Group)
             $GroupMembers= $Group.Users
             $Ctx.Load($GroupMembers)
+
+            Write-Host "'ExecuteQuery' at #Get Group Members" -ForegroundColor Yellow
+            Write-Host "'ExecuteQuery' Decorating traffic with User agent" -ForegroundColor Green
+            $Ctx.add_ExecutingWebRequest({
+            param($Source, $EventArgs)
+            $request = $EventArgs.WebRequestExecutor.WebRequest
+            $request.UserAgent = "NONISV|ArtS|SPOPermissionChecker/2.3"
+            })
+
             $Ctx.ExecuteQuery()
             If($GroupMembers.count -eq 0){Continue}
             $GroupUsersTMP = ($GroupMembers | Select Title, Email)
@@ -203,18 +254,32 @@ Function Generate-SPOSitePermissionRpt()
     
         #Setup the context
         $Ctx = $authManager.GetWebLoginClientContext($SiteURL)
+
+        #Decorating CSOM calls
+        $Ctx.add_ExecutingWebRequest({
+        param($Source, $EventArgs)
+        $request = $EventArgs.WebRequestExecutor.WebRequest
+        $request.UserAgent = "NONISV|ArtS|SPOPermissionChecker/2.3"
+        })
+        Write-Host "'ExecuteQuery' at #Decorating CSOM calls" -ForegroundColor Yellow
+        $ctx.ExecuteQuery()
    
         #Get the Web & Root Web
+        1..5 | %{
         $Web = $Ctx.Web
         $RootWeb = $Ctx.Site.RootWeb
         $Ctx.Load($Web)
         $Ctx.Load($RootWeb)
+        Write-Host "'ExecuteQuery' at #Get the Web & Root Web" -ForegroundColor Yellow
         $Ctx.ExecuteQuery()
+        Start-Sleep -Milliseconds 1000
+        }
    
         Write-host -f Yellow "Getting Site Collection Administrators..."
         #Get Site Collection Administrators
         $SiteUsers= $RootWeb.SiteUsers 
         $Ctx.Load($SiteUsers)
+        Write-Host "'ExecuteQuery' at #Get Site Collection Administrators" -ForegroundColor Yellow
         $Ctx.ExecuteQuery()
         $SiteAdmins = $SiteUsers | Where { $_.IsSiteAdmin -eq $true}
 
@@ -251,6 +316,7 @@ Function Generate-SPOSitePermissionRpt()
                 #Get items from the list
                 $ListItems = $List.GetItems($Query)
                 $Ctx.Load($ListItems)
+                Write-Host "'ExecuteQuery' at #Get items from the list" -ForegroundColor Yellow
                 $Ctx.ExecuteQuery()
             
                 $Query.ListItemCollectionPosition = $ListItems.ListItemCollectionPosition
@@ -266,6 +332,7 @@ Function Generate-SPOSitePermissionRpt()
                     Else
                     {
                         Invoke-LoadMethod -Object $ListItem -PropertyName "HasUniqueRoleAssignments"
+                        Write-Host "'ExecuteQuery' at #Get Objects with Unique Permissions or Inherited Permissions based on 'IncludeInheritedPermissions' switch" -ForegroundColor Yellow
                         $Ctx.ExecuteQuery()
                         If($ListItem.HasUniqueRoleAssignments -eq $True)
                         {
@@ -285,6 +352,7 @@ Function Generate-SPOSitePermissionRpt()
             #Get All Lists from the web
             $Lists = $Web.Lists
             $Ctx.Load($Lists)
+            Write-Host "'ExecuteQuery' at #Get All Lists from the web" -ForegroundColor Yellow
             $Ctx.ExecuteQuery()
    
             #Exclude system lists
@@ -319,6 +387,7 @@ Function Generate-SPOSitePermissionRpt()
                     {
                         #Check if List has unique permissions
                         Invoke-LoadMethod -Object $List -PropertyName "HasUniqueRoleAssignments"
+                        Write-Host "'ExecuteQuery' at #Check if List has unique permissions" -ForegroundColor Yellow
                         $Ctx.ExecuteQuery()
                         If($List.HasUniqueRoleAssignments -eq $True)
                         {
@@ -334,8 +403,9 @@ Function Generate-SPOSitePermissionRpt()
         Function Get-SPOWebPermission([Microsoft.SharePoint.Client.Web]$Web) 
         {
             #Get all immediate subsites of the site
-            $Ctx.Load($web.Webs)  
-            $Ctx.executeQuery()
+            $Ctx.Load($web.Webs)
+            Write-Host "'ExecuteQuery' at #Get all immediate subsites of the site" -ForegroundColor Yellow
+            $Ctx.ExecuteQuery()
     
             #Call the function to Get permissions of the web
             Write-host -f Yellow "Getting Permissions of the Web: $($Web.URL)..." 
@@ -360,6 +430,7 @@ Function Generate-SPOSitePermissionRpt()
                     {
                         #Check if the Web has unique permissions
                         Invoke-LoadMethod -Object $Subweb -PropertyName "HasUniqueRoleAssignments"
+                        Write-Host "'ExecuteQuery' at #Check if the Web has unique permissions" -ForegroundColor Yellow
                         $Ctx.ExecuteQuery()
    
                         #Get the Web's Permissions
@@ -382,35 +453,25 @@ Function Generate-SPOSitePermissionRpt()
         write-host -f Red "Error Generating Site Permission Report!" $_.Exception.Message
    }
 }
-   
-#region ***Parameters***
-$SiteURL="https://CONTOSO.sharepoint.com/sites/dev"
-$BatchSize = 500
-$ReportPath = '.\Reports'
-$LibsPath = '.\Libs'
-
-$LogTime = Get-Date -Format yyyy-MM-dd_hh-mm
-$ReportFile = $ReportPath + '\SitePermissionRpt_' + $LogTime + '.csv'
-
-#Credential settings
-#$CurrentUserName = whoami /upn
-#$userName = "UserName@CONTOSO.COM"
-#$securePassword = ConvertTo-SecureString -String "PASSWORD" -AsPlainText -Force
-
-#endregion
 
 Load-Dependencies
 
 #Call the function to generate permission report
 
-#Quick check (Root-Site)
+#Quick check (Root-Site permissions)
 #Generate-SPOSitePermissionRpt -SiteURL $SiteURL -ReportFile $ReportFile
 
-#Moderate (Object items and Inherited Permissions excluded)
+#Moderate (List items and inherited permissions are excluded)
 #Generate-SPOSitePermissionRpt -SiteURL $SiteURL -ReportFile $ReportFile -Recursive
 
-#Moderate (Object items excluded)
+#Moderate (List items permissions are excluded)
 #Generate-SPOSitePermissionRpt -SiteURL $SiteURL -ReportFile $ReportFile -Recursive -IncludeInheritedPermissions
 
 #Full check
 #Generate-SPOSitePermissionRpt -SiteURL $SiteURL -ReportFile $ReportFile -Recursive -ScanItemLevel -IncludeInheritedPermissions
+Stop-Transcript
+
+#Add Header Agent to all "ExecuteQuery" and decorate them
+#Add select scan lvl
+#Add global progress bar
+#Update loading logic for dependecies
